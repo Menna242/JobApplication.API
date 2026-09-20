@@ -4,9 +4,9 @@ using System.Text;
 
 namespace JobApplication.Domain.Entities
 {
-    public class Candidate
+    public class Candidate :BaseEntity
     {
-        public int Id { get; set; }
+        public string UserId { get; set; } = string.Empty;
         public string Name { get; set; }
         public string CvUrl { get; set; }
     }

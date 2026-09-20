@@ -1,13 +1,14 @@
 ﻿using JobApplication.Application.Interfaces;
 using JobApplication.Domain.Entities;
 using JobApplication.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace JobApplication.Infrastructure.Repositories
 {
-    public class JobRepository : IJobRepository
+    public class JobRepository : IRepository<Job>
     {
         private readonly ApplicationDbContext _context;
 
@@ -24,9 +25,15 @@ namespace JobApplication.Infrastructure.Repositories
         {
             _context.Jobs.Update(job);
         }
-        public IQueryable<Job> Get()
+
+        public async Task<Job> GetByIdAsync(int id)
         {
-            var jobs = _context.Jobs.AsQueryable();
+            return await _context.Jobs.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<Job>> GetAllAsync()
+        {
+            var jobs =await  _context.Jobs.ToListAsync();
             return jobs; 
         }
         public void Remove(Job job)

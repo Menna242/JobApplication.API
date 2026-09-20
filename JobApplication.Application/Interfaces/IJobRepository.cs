@@ -10,6 +10,7 @@ namespace JobApplication.Application.Interfaces
         Task InsertAsync(Job job);
         void Update(Job job);
         IQueryable<Job> Get();
+
         void Remove(Job job);
         Task SaveChangesAsync();
     }

@@ -4,11 +4,14 @@ using System.Text;
 
 namespace JobApplication.Domain.Entities
 {
-    public class Job
+    public class Job:BaseEntity
     {
-        public int Id { get; set; }
         public string Title { get; set; }
         public string Description  { get; set; }
         public bool IsActive { get; set; }
+        public string RecruiterId { get; set; } = string.Empty;
+        public DateTime? ClosedAt { get; set; }        
+        public string? ClosedBy { get; set; }
+
     }
 }
