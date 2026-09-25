@@ -10,15 +10,18 @@ namespace JobApplication.Application.Features.Applications.Commands.ApplyForJob
         private readonly IRepository<Job> _jobRepository;
         private readonly IRepository<Candidate> _candidateRepository;
         private readonly IRepository<JobCandidateApplication> _applicationRepository;
+        private readonly IBackgroundJobScheduler _backgroundJobScheduler;
 
         public ApplyForJobHandler(
             IRepository<Job> jobRepository,
             IRepository<Candidate> candidateRepository,
-            IRepository<JobCandidateApplication> applicationRepository)
+            IRepository<JobCandidateApplication> applicationRepository,
+            IBackgroundJobScheduler backgroundJobScheduler)
         {
             _jobRepository = jobRepository;
             _candidateRepository = candidateRepository;
             _applicationRepository = applicationRepository;
+            _backgroundJobScheduler = backgroundJobScheduler;
         }
 
         public async Task<int> Handle(ApplyForJobCommand request, CancellationToken cancellationToken)
@@ -62,6 +65,8 @@ namespace JobApplication.Application.Features.Applications.Commands.ApplyForJob
 
             await _applicationRepository.InsertAsync(application);
             await _applicationRepository.SaveChangesAsync();
+            _backgroundJobScheduler.Enqueue<INotificationService>(b => b.NotifyRecruiter(application.Id));
+
 
             return application.Id;
         }

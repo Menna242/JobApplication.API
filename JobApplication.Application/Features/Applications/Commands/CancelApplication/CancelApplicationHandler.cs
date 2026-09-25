@@ -3,6 +3,7 @@ using JobApplication.Application.Interfaces;
 using JobApplication.Domain.Entities;
 using JobApplication.Domain.Enums;
 using MediatR;
+using Hangfire;
 
 namespace JobApplication.Application.Features.Applications.Commands.CancelApplication
 {
@@ -10,13 +11,17 @@ namespace JobApplication.Application.Features.Applications.Commands.CancelApplic
     {
         private readonly IRepository<JobCandidateApplication> _applicationRepository;
         private readonly IRepository<Candidate> _candidateRepository;
+        private readonly IBackgroundJobScheduler _jobScheduler;
+
 
         public CancelApplicationHandler(
             IRepository<JobCandidateApplication> applicationRepository,
-            IRepository<Candidate> candidateRepository)
+            IRepository<Candidate> candidateRepository,
+            IBackgroundJobScheduler jobScheduler)
         {
             _applicationRepository = applicationRepository;
             _candidateRepository = candidateRepository;
+            _jobScheduler = jobScheduler;
         }
 
         public async Task<Unit> Handle(CancelApplicationCommand request, CancellationToken cancellationToken)
@@ -41,6 +46,8 @@ namespace JobApplication.Application.Features.Applications.Commands.CancelApplic
 
             _applicationRepository.Update(application);
             await _applicationRepository.SaveChangesAsync();
+
+            _jobScheduler.Enqueue<INotificationService>(x => x.NotifyCandidate(application.Id));
 
             return Unit.Value;
         }
