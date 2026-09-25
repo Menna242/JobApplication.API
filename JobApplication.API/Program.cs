@@ -13,6 +13,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
+using JobApplication.Application.Features.Jobs.Commands.CreateJob;
+using Hangfire;
+using JobApplication.Infrastructure.Services;
+
 namespace JobApplication.API
 {
     public class Program
@@ -75,10 +79,19 @@ namespace JobApplication.API
 
 
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-            builder.Services.AddScoped<JobService>();
-            builder.Services.AddScoped<ApplicationService>();
-            builder.Services.AddScoped<IAuthService,AuthService>();
+            //builder.Services.AddScoped<JobService>();
+            //builder.Services.AddScoped<ApplicationService>();
+            //builder.Services.AddScoped<IAuthService,AuthService>();
 
+            builder.Services.AddScoped<INotificationService, EmailNotificationService>();
+            builder.Services.AddScoped<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
+            builder.Services.AddScoped<IJobMaintenanceService, JobMaintenanceService>();
+
+            builder.Services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssembly(typeof(CreateJobCommand).Assembly);       // Application
+                cfg.RegisterServicesFromAssembly(typeof(RegisterHandler).Assembly);        // Infrastructure
+            });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
@@ -98,7 +111,18 @@ namespace JobApplication.API
                     {
                         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
                     });
+
+                var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(System.IO.Path.Combine(AppContext.BaseDirectory, xmlFilename));
             });
+
+            builder.Services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(connectionString));
+
+            builder.Services.AddHangfireServer();
 
             var app = builder.Build();
 
@@ -130,6 +154,12 @@ namespace JobApplication.API
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseHangfireDashboard("/hangfire");
+            RecurringJob.AddOrUpdate<IJobMaintenanceService>(
+            "auto-close-stale-jobs",
+            service => service.AutoCloseStaleJobsAsync(),
+            Cron.Daily()
+        );
 
             app.MapControllers();
 

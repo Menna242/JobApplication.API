@@ -10,6 +10,7 @@ namespace JobApplication.Domain.Entities
         public string Description  { get; set; }
         public bool IsActive { get; set; }
         public string RecruiterId { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ClosedAt { get; set; }        
         public string? ClosedBy { get; set; }
 

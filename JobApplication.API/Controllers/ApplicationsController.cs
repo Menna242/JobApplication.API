@@ -1,6 +1,7 @@
 ﻿using JobApplication.Application.DTOs;
-using JobApplication.Application.Interfaces;
-using JobApplication.Application.Services;
+using JobApplication.Application.Features.Applications.Commands.ApplyForJob;
+using JobApplication.Application.Features.Applications.Commands.CancelApplication;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,11 +12,11 @@ namespace JobApplication.API.Controllers
     [ApiController]
     public class ApplicationsController : ControllerBase
     {
-        private readonly ApplicationService _applicationService;
+        private readonly IMediator _mediator;
 
-        public ApplicationsController(ApplicationService applicationService)
+        public ApplicationsController(IMediator mediator)
         {
-            _applicationService = applicationService;
+            _mediator = mediator;
         }
 
         [HttpPost]
@@ -24,9 +25,17 @@ namespace JobApplication.API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            var command = new ApplyForJobCommand
+            {
+                JobId = dto.JobId,
+                UserId = userId!,
+                Name = dto.Name,
+                CvUrl = dto.CvUrl
+            };
+
             try
             {
-                var id = await _applicationService.ApplyAsync(userId!, dto);
+                var id = await _mediator.Send(command);
                 return Ok(new { id });
             }
             catch (Exception ex)
@@ -41,9 +50,15 @@ namespace JobApplication.API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            var command = new CancelApplicationCommand
+            {
+                ApplicationId = id,
+                UserId = userId!
+            };
+
             try
             {
-                await _applicationService.CancelAsync(userId!, id);
+                await _mediator.Send(command);
                 return Ok(new { message = "Application cancelled successfully" });
             }
             catch (Exception ex)
